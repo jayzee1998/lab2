@@ -1,0 +1,83 @@
+---
+title: "lab2_assignment_week2"
+output: html_document
+---
+
+```{r}
+library(readr)
+library(tidyverse)
+
+```
+
+```{r}
+lab2 <- read_csv("lab2.csv")
+coverage <- read_csv("coverage.csv", skip = 2)
+expenditures <- read_csv("expenditures.csv", skip = 2)
+
+```
+
+
+```{r}
+
+lab_tidy <- lab2 %>%
+  gather(key = id, value = caes, indexes = 2 : 10) %>%
+  separate(id,into =  c("A", "B"), sep = "_") #make the data tidy
+
+
+names(lab_tidy) <- c("id", "time", "type", "cases") #rename the tidy data
+
+summay <- lab_tidy %>%  
+  group_by(time, type) %>%
+  summarise(avg = mean(cases),
+            s.d. = sd(cases) ) #Do summary for the plot
+
+PD <-  position_dodge(width = 0.1)
+summay %>%
+  ggplot(aes(x = time, y = avg, col = type)) +
+  geom_point(position = PD) +
+  geom_line( aes(group = type), position = PD) +
+  geom_errorbar(aes(x=time, ymin=avg - s.d., ymax= avg + s.d.), position = PD,width=0.1, size=1) +
+  ylim(0, 100) +
+  labs(x = "Time of report", y = "Sample mean and standard deviation", col = "") +
+  theme_bw()  #Use ggplot to get the plot
+
+```
+
+```{r}
+##tidy the coverage
+coverage <- coverage[1 : 52,] #remove the notes
+
+coverage_tidy <- coverage %>%  #make the data tidy 
+  gather(key = kinds, value = coverage, indexes = 2 : 29) %>%
+  separate(kinds,into =  c("Year", "class"), sep = "__") %>%
+  spread(class, coverage)
+
+print(str(coverage_tidy))
+```
+
+```{r}
+##tidy the expenditure
+expenditures <- expenditures[1 : 52,] #remove the notes
+
+expenditures_tidy <- expenditures %>%  #make the data tidy 
+  gather(key = kinds, value = expenditures, indexes = 2 : 25) %>%
+  separate(kinds,into =  c("Year", "class"), sep = "__")
+expenditures_tidy <- expenditures_tidy[, -3]
+names(expenditures_tidy)[3] <- "Total_health_spending"
+print(str(expenditures_tidy))
+```
+
+```{r}
+##merge those two
+unique(expenditures_tidy$Year)
+
+unique(coverage_tidy$Year)
+
+
+
+final_df <- merge(expenditures_tidy, coverage_tidy, by = c("Location", "Year"), all = TRUE ) %>%
+  filter(Year > 2012)
+
+print(str(final_df))
+```
+
